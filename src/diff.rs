@@ -354,6 +354,7 @@ impl fmt::Display for DifferenceRef<'_> {
     }
 }
 
+/// Represents a path to a JSON value in a tree structure.
 #[derive(Debug, Clone, PartialEq)]
 enum Path {
     Root,
@@ -402,6 +403,7 @@ impl fmt::Display for PathRef<'_> {
     }
 }
 
+/// Represents a key in a JSON object or an index in a JSON array.
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Key {
     Idx(usize),
