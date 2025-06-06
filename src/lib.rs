@@ -321,6 +321,27 @@ where
 /// This function performs some cloning and may be less efficient.
 ///
 /// If you only need a string error message, use [`assert_json_matches_no_panic_to_string`] or the assertion macros.
+///
+/// # Examples
+///
+/// ```
+/// use serde_json_assert::{assert_json_matches_no_panic, Config, CompareMode};
+/// use serde_json::json;
+///
+/// let lhs = json!({ "a": 1, "b": 2 });
+/// let rhs = json!({ "a": 1 });
+/// let config = Config::new(CompareMode::Inclusive);
+///
+/// let result = assert_json_matches_no_panic(&lhs, &rhs, &config);
+/// assert!(result.is_ok());
+///
+/// let lhs = json!({ "a": 1 });
+/// let rhs = json!({ "a": 2 });
+/// let config = Config::new(CompareMode::Strict);
+///
+/// let result = assert_json_matches_no_panic(&lhs, &rhs, &config);
+/// assert!(result.is_err());
+/// ```
 pub fn assert_json_matches_no_panic<Lhs, Rhs>(
     lhs: &Lhs,
     rhs: &Rhs,
