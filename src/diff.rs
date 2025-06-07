@@ -4,7 +4,7 @@ use float_cmp::{ApproxEq, F64Margin};
 use serde_json::Value;
 use std::{collections::HashSet, fmt};
 
-pub(crate) fn diff<'a>(lhs: &'a Value, rhs: &'a Value, config: &'a Config) -> Vec<Difference<'a>> {
+pub(crate) fn diff<'a>(lhs: &'a Value, rhs: &'a Value, config: &'a Config) -> Vec<Difference> {
     let mut acc = vec![];
     diff_with(lhs, rhs, config, Path::Root, &mut acc);
     acc
@@ -14,8 +14,8 @@ fn diff_with<'a>(
     lhs: &'a Value,
     rhs: &'a Value,
     config: &'a Config,
-    path: Path<'a>,
-    acc: &mut Vec<Difference<'a>>,
+    path: Path,
+    acc: &mut Vec<Difference>,
 ) {
     let mut folder = DiffFolder {
         rhs,
@@ -30,8 +30,8 @@ fn diff_with<'a>(
 #[derive(Debug)]
 struct DiffFolder<'a, 'b> {
     rhs: &'a Value,
-    path: Path<'a>,
-    acc: &'b mut Vec<Difference<'a>>,
+    path: Path,
+    acc: &'b mut Vec<Difference>,
     config: &'a Config,
 }
 
@@ -40,8 +40,8 @@ macro_rules! direct_compare {
         fn $name(&mut self, lhs: &'a Value) {
             if self.rhs != lhs {
                 self.acc.push(Difference {
-                    lhs: Some(lhs),
-                    rhs: Some(&self.rhs),
+                    lhs: Some(lhs.clone()),
+                    rhs: Some(self.rhs.clone()),
                     path: self.path.clone(),
                     config: self.config.clone(),
                 });
@@ -65,8 +65,8 @@ impl<'a> DiffFolder<'a, '_> {
         };
         if !is_equal {
             self.acc.push(Difference {
-                lhs: Some(lhs),
-                rhs: Some(self.rhs),
+                lhs: Some(lhs.clone()),
+                rhs: Some(self.rhs.clone()),
                 path: self.path.clone(),
                 config: self.config.clone(),
             });
@@ -102,8 +102,8 @@ impl<'a> DiffFolder<'a, '_> {
 
             if self.config.compare_mode == CompareMode::Strict && lhs_len != rhs_len {
                 self.acc.push(Difference {
-                    lhs: Some(lhs),
-                    rhs: Some(self.rhs),
+                    lhs: Some(lhs.clone()),
+                    rhs: Some(self.rhs.clone()),
                     path: self.path.clone(),
                     config: self.config.clone(),
                 });
@@ -125,8 +125,8 @@ impl<'a> DiffFolder<'a, '_> {
                     .count();
                 if lhs_matching_items_count < rhs_item_count {
                     self.acc.push(Difference {
-                        lhs: Some(lhs),
-                        rhs: Some(self.rhs),
+                        lhs: Some(lhs.clone()),
+                        rhs: Some(self.rhs.clone()),
                         path: self.path.clone(),
                         config: self.config.clone(),
                     });
@@ -135,8 +135,8 @@ impl<'a> DiffFolder<'a, '_> {
             }
         } else {
             self.acc.push(Difference {
-                lhs: Some(lhs),
-                rhs: Some(self.rhs),
+                lhs: Some(lhs.clone()),
+                rhs: Some(self.rhs.clone()),
                 path: self.path.clone(),
                 config: self.config.clone(),
             });
@@ -161,7 +161,7 @@ impl<'a> DiffFolder<'a, '_> {
                         } else {
                             self.acc.push(Difference {
                                 lhs: None,
-                                rhs: Some(self.rhs),
+                                rhs: Some(self.rhs.clone()),
                                 path,
                                 config: self.config.clone(),
                             });
@@ -184,14 +184,14 @@ impl<'a> DiffFolder<'a, '_> {
                             (None, Some(rhs)) => {
                                 self.acc.push(Difference {
                                     lhs: None,
-                                    rhs: Some(rhs),
+                                    rhs: Some(rhs.clone()),
                                     path,
                                     config: self.config.clone(),
                                 });
                             }
                             (Some(lhs), None) => {
                                 self.acc.push(Difference {
-                                    lhs: Some(lhs),
+                                    lhs: Some(lhs.clone()),
                                     rhs: None,
                                     path,
                                     config: self.config.clone(),
@@ -206,8 +206,8 @@ impl<'a> DiffFolder<'a, '_> {
             }
         } else {
             self.acc.push(Difference {
-                lhs: Some(lhs),
-                rhs: Some(self.rhs),
+                lhs: Some(lhs.clone()),
+                rhs: Some(self.rhs.clone()),
                 path: self.path.clone(),
                 config: self.config.clone(),
             });
@@ -221,14 +221,14 @@ impl<'a> DiffFolder<'a, '_> {
             match self.config.compare_mode {
                 CompareMode::Inclusive => {
                     for (key, rhs) in rhs.iter() {
-                        let path = self.path.append(Key::Field(key));
+                        let path = self.path.append(Key::Field(key.to_string()));
 
                         if let Some(lhs) = lhs.get(key) {
                             diff_with(lhs, rhs, self.config, path, self.acc)
                         } else {
                             self.acc.push(Difference {
                                 lhs: None,
-                                rhs: Some(self.rhs),
+                                rhs: Some(self.rhs.clone()),
                                 path,
                                 config: self.config.clone(),
                             });
@@ -238,7 +238,7 @@ impl<'a> DiffFolder<'a, '_> {
                 CompareMode::Strict => {
                     let all_keys = rhs.keys().chain(lhs.keys()).collect::<HashSet<_>>();
                     for key in all_keys {
-                        let path = self.path.append(Key::Field(key));
+                        let path = self.path.append(Key::Field(key.to_string()));
 
                         match (lhs.get(key), rhs.get(key)) {
                             (Some(lhs), Some(rhs)) => {
@@ -247,14 +247,14 @@ impl<'a> DiffFolder<'a, '_> {
                             (None, Some(rhs)) => {
                                 self.acc.push(Difference {
                                     lhs: None,
-                                    rhs: Some(rhs),
+                                    rhs: Some(rhs.clone()),
                                     path,
                                     config: self.config.clone(),
                                 });
                             }
                             (Some(lhs), None) => {
                                 self.acc.push(Difference {
-                                    lhs: Some(lhs),
+                                    lhs: Some(lhs.clone()),
                                     rhs: None,
                                     path,
                                     config: self.config.clone(),
@@ -269,8 +269,8 @@ impl<'a> DiffFolder<'a, '_> {
             }
         } else {
             self.acc.push(Difference {
-                lhs: Some(lhs),
-                rhs: Some(self.rhs),
+                lhs: Some(lhs.clone()),
+                rhs: Some(self.rhs.clone()),
                 path: self.path.clone(),
                 config: self.config.clone(),
             });
@@ -279,14 +279,14 @@ impl<'a> DiffFolder<'a, '_> {
 }
 
 #[derive(Debug, PartialEq)]
-pub(crate) struct Difference<'a> {
-    path: Path<'a>,
-    lhs: Option<&'a Value>,
-    rhs: Option<&'a Value>,
+pub(crate) struct Difference {
+    path: Path,
+    lhs: Option<Value>,
+    rhs: Option<Value>,
     config: Config,
 }
 
-impl fmt::Display for Difference<'_> {
+impl fmt::Display for Difference {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let json_to_string = |json: &Value| serde_json::to_string_pretty(json).unwrap();
 
@@ -331,13 +331,13 @@ impl fmt::Display for Difference<'_> {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-enum Path<'a> {
+enum Path {
     Root,
-    Keys(Vec<Key<'a>>),
+    Keys(Vec<Key>),
 }
 
-impl<'a> Path<'a> {
-    fn append(&self, next: Key<'a>) -> Path<'a> {
+impl<'a> Path {
+    fn append(&self, next: Key) -> Path {
         match self {
             Path::Root => Path::Keys(vec![next]),
             Path::Keys(list) => {
@@ -349,7 +349,7 @@ impl<'a> Path<'a> {
     }
 }
 
-impl fmt::Display for Path<'_> {
+impl fmt::Display for Path {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Path::Root => write!(f, "(root)"),
@@ -363,13 +363,13 @@ impl fmt::Display for Path<'_> {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
-enum Key<'a> {
+#[derive(Debug, Clone, PartialEq)]
+enum Key {
     Idx(usize),
-    Field(&'a str),
+    Field(String),
 }
 
-impl fmt::Display for Key<'_> {
+impl fmt::Display for Key {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Key::Idx(idx) => write!(f, "[{}]", idx),
