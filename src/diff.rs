@@ -291,26 +291,7 @@ pub struct Difference {
     config: Config,
 }
 
-impl<'a> From<DifferenceRef<'a>> for Difference {
-    fn from(diff: DifferenceRef<'a>) -> Self {
-        Difference {
-            path: Path::from(diff.path),
-            lhs: diff.lhs.cloned(),
-            rhs: diff.rhs.cloned(),
-            config: diff.config.clone(),
-        }
-    }
-}
-
-#[derive(Debug, PartialEq)]
-pub(crate) struct DifferenceRef<'a> {
-    path: PathRef<'a>,
-    lhs: Option<&'a Value>,
-    rhs: Option<&'a Value>,
-    config: Config,
-}
-
-impl fmt::Display for DifferenceRef<'_> {
+impl fmt::Display for Difference {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let json_to_string = |json: &Value| serde_json::to_string_pretty(json).unwrap();
 
@@ -354,11 +335,44 @@ impl fmt::Display for DifferenceRef<'_> {
     }
 }
 
+impl<'a> From<DifferenceRef<'a>> for Difference {
+    fn from(diff: DifferenceRef<'a>) -> Self {
+        Difference {
+            path: Path::from(diff.path),
+            lhs: diff.lhs.cloned(),
+            rhs: diff.rhs.cloned(),
+            config: diff.config.clone(),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub(crate) struct DifferenceRef<'a> {
+    path: PathRef<'a>,
+    lhs: Option<&'a Value>,
+    rhs: Option<&'a Value>,
+    config: Config,
+}
+
 /// Represents a path to a JSON value in a tree structure.
 #[derive(Debug, Clone, PartialEq)]
 enum Path {
     Root,
     Keys(Vec<Key>),
+}
+
+impl fmt::Display for Path {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Path::Root => write!(f, "(root)"),
+            Path::Keys(keys) => {
+                for key in keys {
+                    write!(f, "{}", key)?;
+                }
+                Ok(())
+            }
+        }
+    }
 }
 
 impl<'a> From<PathRef<'a>> for Path {
@@ -389,25 +403,20 @@ impl<'a> PathRef<'a> {
     }
 }
 
-impl fmt::Display for PathRef<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            PathRef::Root => write!(f, "(root)"),
-            PathRef::Keys(keys) => {
-                for key in keys {
-                    write!(f, "{}", key)?;
-                }
-                Ok(())
-            }
-        }
-    }
-}
-
 /// Represents a key in a JSON object or an index in a JSON array.
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Key {
     Idx(usize),
     Field(String),
+}
+
+impl fmt::Display for Key {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Key::Idx(idx) => write!(f, "[{}]", idx),
+            Key::Field(key) => write!(f, ".{}", key),
+        }
+    }
 }
 
 impl<'a> From<KeyRef<'a>> for Key {
@@ -423,15 +432,6 @@ impl<'a> From<KeyRef<'a>> for Key {
 enum KeyRef<'a> {
     Idx(usize),
     Field(&'a str),
-}
-
-impl fmt::Display for KeyRef<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            KeyRef::Idx(idx) => write!(f, "[{}]", idx),
-            KeyRef::Field(key) => write!(f, ".{}", key),
-        }
-    }
 }
 
 fn fold_json<'a>(json: &'a Value, folder: &mut DiffFolder<'a, '_>) {
