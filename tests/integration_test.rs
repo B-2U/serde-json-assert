@@ -2,7 +2,7 @@ use serde::Serialize;
 use serde_json::json;
 use serde_json_assert::{
     assert_json_contains, assert_json_eq, assert_json_include, assert_json_matches,
-    assert_json_matches_no_panic, CompareMode, Config, FloatCompareMode, NumericMode,
+    assert_json_matches_no_panic_to_string, CompareMode, Config, FloatCompareMode, NumericMode,
 };
 
 #[test]
@@ -129,22 +129,32 @@ fn can_fail_with_exact_match() {
 #[test]
 fn inclusive_match_without_panicking() {
     let config = Config::new(CompareMode::Inclusive).numeric_mode(NumericMode::Strict);
-    assert!(
-        assert_json_matches_no_panic(&json!({ "a": 1, "b": 2 }), &json!({ "b": 2}), &config)
-            .is_ok()
-    );
+    assert!(assert_json_matches_no_panic_to_string(
+        &json!({ "a": 1, "b": 2 }),
+        &json!({ "b": 2}),
+        &config
+    )
+    .is_ok());
 
-    assert!(
-        assert_json_matches_no_panic(&json!({ "a": 1, "b": 2 }), &json!("foo"), &config,).is_err()
-    );
+    assert!(assert_json_matches_no_panic_to_string(
+        &json!({ "a": 1, "b": 2 }),
+        &json!("foo"),
+        &config,
+    )
+    .is_err());
 }
 
 #[test]
 fn exact_match_without_panicking() {
     let config = Config::new(CompareMode::Strict).numeric_mode(NumericMode::Strict);
-    assert!(assert_json_matches_no_panic(&json!([1, 2, 3]), &json!([1, 2, 3]), &config,).is_ok());
+    assert!(
+        assert_json_matches_no_panic_to_string(&json!([1, 2, 3]), &json!([1, 2, 3]), &config,)
+            .is_ok()
+    );
 
-    assert!(assert_json_matches_no_panic(&json!([1, 2, 3]), &json!("foo"), &config).is_err());
+    assert!(
+        assert_json_matches_no_panic_to_string(&json!([1, 2, 3]), &json!("foo"), &config).is_err()
+    );
 }
 
 #[derive(Serialize)]

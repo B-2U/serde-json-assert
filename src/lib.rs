@@ -325,24 +325,24 @@ where
 /// # Examples
 ///
 /// ```
-/// use serde_json_assert::{assert_json_matches_no_panic, Config, CompareMode};
+/// use serde_json_assert::{try_assert_json_matches, Config, CompareMode};
 /// use serde_json::json;
 ///
 /// let lhs = json!({ "a": 1, "b": 2 });
 /// let rhs = json!({ "a": 1 });
 /// let config = Config::new(CompareMode::Inclusive);
 ///
-/// let result = assert_json_matches_no_panic(&lhs, &rhs, &config);
+/// let result = try_assert_json_matches(&lhs, &rhs, &config);
 /// assert!(result.is_ok());
 ///
 /// let lhs = json!({ "a": 1 });
 /// let rhs = json!({ "a": 2 });
 /// let config = Config::new(CompareMode::Strict);
 ///
-/// let result = assert_json_matches_no_panic(&lhs, &rhs, &config);
+/// let result = try_assert_json_matches(&lhs, &rhs, &config);
 /// assert!(result.is_err());
 /// ```
-pub fn assert_json_matches_no_panic<Lhs, Rhs>(
+pub fn try_assert_json_matches<Lhs, Rhs>(
     lhs: &Lhs,
     rhs: &Rhs,
     config: &Config,
