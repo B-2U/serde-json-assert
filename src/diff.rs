@@ -324,6 +324,50 @@ impl<'a> From<DifferenceRef<'a>> for Difference {
     }
 }
 
+impl fmt::Display for Difference {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let json_to_string = |json: &Value| serde_json::to_string_pretty(json).unwrap();
+
+        match (&self.config.compare_mode, &self.lhs, &self.rhs) {
+            (CompareMode::Inclusive, Some(actual), Some(expected)) => {
+                writeln!(f, "json atoms at path \"{}\" are not equal:", self.path)?;
+                writeln!(f, "    expected:")?;
+                writeln!(f, "{}", json_to_string(expected).indent(8))?;
+                writeln!(f, "    actual:")?;
+                write!(f, "{}", json_to_string(actual).indent(8))?;
+            }
+            (CompareMode::Inclusive, None, Some(_expected)) => {
+                write!(
+                    f,
+                    "json atom at path \"{}\" is missing from actual",
+                    self.path
+                )?;
+            }
+            (CompareMode::Inclusive, Some(_actual), None) => {
+                unreachable!("stuff missing actual wont produce an error")
+            }
+            (CompareMode::Inclusive, None, None) => unreachable!("can't both be missing"),
+
+            (CompareMode::Strict, Some(lhs), Some(rhs)) => {
+                writeln!(f, "json atoms at path \"{}\" are not equal:", self.path)?;
+                writeln!(f, "    lhs:")?;
+                writeln!(f, "{}", json_to_string(lhs).indent(8))?;
+                writeln!(f, "    rhs:")?;
+                write!(f, "{}", json_to_string(rhs).indent(8))?;
+            }
+            (CompareMode::Strict, None, Some(_)) => {
+                write!(f, "json atom at path \"{}\" is missing from lhs", self.path)?;
+            }
+            (CompareMode::Strict, Some(_), None) => {
+                write!(f, "json atom at path \"{}\" is missing from rhs", self.path)?;
+            }
+            (CompareMode::Strict, None, None) => unreachable!("can't both be missing"),
+        }
+
+        Ok(())
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub(crate) struct DifferenceRef<'a> {
     path: PathRef<'a>,
@@ -394,6 +438,20 @@ impl<'a> From<PathRef<'a>> for Path {
     }
 }
 
+impl fmt::Display for Path {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Path::Root => write!(f, "(root)"),
+            Path::Keys(keys) => {
+                for key in keys {
+                    write!(f, "{}", key)?;
+                }
+                Ok(())
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 enum PathRef<'a> {
     Root,
@@ -441,6 +499,15 @@ impl<'a> From<KeyRef<'a>> for Key {
         match key {
             KeyRef::Idx(idx) => Key::Idx(idx),
             KeyRef::Field(field) => Key::Field(field.to_owned()),
+        }
+    }
+}
+
+impl fmt::Display for Key {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Key::Idx(idx) => write!(f, "[{}]", idx),
+            Key::Field(key) => write!(f, ".{}", key),
         }
     }
 }
