@@ -437,10 +437,14 @@ where
 #[derive(Debug, Clone, PartialEq)]
 #[allow(missing_copy_implementations)]
 pub struct Config {
-    pub(crate) array_sorting_mode: ArraySortingMode,
-    pub(crate) compare_mode: CompareMode,
-    pub(crate) numeric_mode: NumericMode,
-    float_compare_mode: FloatCompareMode,
+    /// Should array sorting be taken in consideration.
+    pub array_sorting_mode: ArraySortingMode,
+    /// How should JSON values be compared.
+    pub compare_mode: CompareMode,
+    /// How should numbers be compared.
+    pub numeric_mode: NumericMode,
+    /// How should floating point numbers be compared.
+    pub float_compare_mode: FloatCompareMode,
 }
 
 impl Config {
@@ -508,7 +512,7 @@ pub enum CompareMode {
 
 /// Should array sorting be taken in consideration
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-enum ArraySortingMode {
+pub enum ArraySortingMode {
     ///consider
     Consider,
     /// ignore
